@@ -1,0 +1,37 @@
+export type Category = 'Wireless' | 'Television' | 'Components' | 'Professional'
+export type Tech = { id: string; name: string; branch: Category; cost: number; requires?: string; description: string }
+export type Product = { id: string; name: string; category: Category; tech: string; price: number; quality: number; marketing: number; units: number; revenue: number; age: number }
+export type Notice = { title: string; body: string; tone?: string }
+export type Game = {
+  year: number; quarter: number; cash: number; debt: number; prestige: number; research: number; capacity: number; distribution: number;
+  techs: string[]; products: Product[]; notices: Notice[]; marketShare: number; history: number[]; lastProfit: number; action: string
+}
+
+export const techs: Tech[] = [
+  { id:'crystal', name:'Crystal Receivers', branch:'Wireless', cost:1, description:'Reliable household radio sets.' },
+  { id:'superhet', name:'Superheterodyne', branch:'Wireless', cost:3, requires:'crystal', description:'Sharper tuning and premium radio margins.' },
+  { id:'fm', name:'Frequency Modulation', branch:'Wireless', cost:5, requires:'superhet', description:'High-fidelity sound for a new audience.' },
+  { id:'cathode', name:'Cathode-Ray Tube', branch:'Television', cost:4, description:'The foundation of electronic television.' },
+  { id:'broadcast', name:'TV Broadcasting', branch:'Television', cost:7, requires:'cathode', description:'Brings the living-room screen to market.' },
+  { id:'color', name:'Color Systems', branch:'Television', cost:10, requires:'broadcast', description:'An expensive leap into vivid displays.' },
+  { id:'vacuum', name:'Vacuum Tubes', branch:'Components', cost:2, description:'In-house components cut production costs.' },
+  { id:'transistor', name:'Transistors', branch:'Components', cost:8, requires:'vacuum', description:'Small, durable electronics reshape everything.' },
+  { id:'automation', name:'Assembly Automation', branch:'Components', cost:6, requires:'vacuum', description:'More output per factory line.' },
+  { id:'studio', name:'Studio Equipment', branch:'Professional', cost:4, description:'High-margin tools for broadcasters.' },
+  { id:'recording', name:'Magnetic Recording', branch:'Professional', cost:6, requires:'studio', description:'A new market for professionals and homes.' },
+]
+
+const catalog: Record<string, Omit<Product, 'id'|'marketing'|'units'|'revenue'|'age'>> = {
+  crystal:{name:'Model 17 Table Radio',category:'Wireless',tech:'crystal',price:32,quality:48}, superhet:{name:'Stratosphere Radio',category:'Wireless',tech:'superhet',price:74,quality:70}, fm:{name:'Fidelity FM Console',category:'Wireless',tech:'fm',price:116,quality:82},
+  cathode:{name:'Radiant View Receiver',category:'Television',tech:'cathode',price:180,quality:52}, broadcast:{name:'Home Television 9',category:'Television',tech:'broadcast',price:295,quality:73}, color:{name:'Chromavision Set',category:'Television',tech:'color',price:490,quality:88},
+  vacuum:{name:'Vacuum Tube Kit',category:'Components',tech:'vacuum',price:18,quality:55}, transistor:{name:'Pocket Receiver',category:'Components',tech:'transistor',price:89,quality:80}, studio:{name:'Studio Amplifier',category:'Professional',tech:'studio',price:240,quality:76}, recording:{name:'Tape Recorder 1',category:'Professional',tech:'recording',price:195,quality:79},
+}
+export const initialGame = (): Game => ({ year:1931, quarter:1, cash:124, debt:0, prestige:24, research:1, capacity:100, distribution:1, techs:[], products:[], notices:[{title:'The board is assembled',body:'Radiant Industries begins with one purpose: put modern electronics in every home.',tone:'neutral'}],marketShare:0,history:[124],lastProfit:0,action:'A clean ledger awaits.' })
+
+export function canResearch(g:Game,t:Tech) { return !g.techs.includes(t.id) && (!t.requires || g.techs.includes(t.requires)) && g.research >= t.cost }
+export function research(g:Game,id:string):Game { const t=techs.find(x=>x.id===id)!; if (!canResearch(g,t)) return g; return {...g,research:g.research-t.cost,techs:[...g.techs,id],prestige:g.prestige+2,action:`Patent secured: ${t.name}.`,notices:[{title:'Research complete',body:`${t.name} is ready for production. Your engineers have opened a new product opportunity.`,tone:'good'},...g.notices].slice(0,5)} }
+export function launch(g:Game,id:string):Game { const item=catalog[id]; if(!item || !g.techs.includes(id) || g.products.some(p=>p.tech===id) || g.cash<18) return g; const p:Product={...item,id:`${id}-${Date.now()}`,marketing:10,units:0,revenue:0,age:0}; return {...g,cash:g.cash-18,products:[...g.products,p],action:`Launched ${p.name}.`,notices:[{title:'Product launched',body:`${p.name} enters the market with a $18k launch campaign.`,tone:'good'},...g.notices].slice(0,5)} }
+export function invest(g:Game,type:'research'|'factory'|'distribution'):Game { const costs={research:20,factory:35,distribution:28}; if(g.cash<costs[type])return g; const n={...g,cash:g.cash-costs[type]}; if(type==='research')n.research+=2; if(type==='factory')n.capacity+=55; if(type==='distribution')n.distribution+=1; n.action=type==='research'?'Hired an additional research team.':type==='factory'?'Expanded factory capacity.':'Opened a new distribution region.'; return n }
+export function advance(g:Game):Game { let totalRevenue=0, units=0; const products=g.products.map(p=>{ const maturity=Math.min(1.2, 0.65+p.age*.08); const techBonus=(p.tech==='broadcast'||p.tech==='transistor'||p.tech==='fm'?1.28:1); const potential=Math.max(0, Math.floor((p.quality*1.45+p.marketing*1.7+g.prestige*.7+g.distribution*8)*maturity*techBonus)); const sold=Math.min(potential,Math.max(0,g.capacity-units)); units+=sold; const revenue=sold*p.price/1000; totalRevenue+=revenue; return {...p,units:sold,revenue,age:p.age+1} }); const costs=16+units*.017+g.products.length*3; const researchGain=1+(g.techs.includes('studio')?1:0); const profit=Math.round((totalRevenue-costs)*10)/10; const nextQ=g.quarter===4?1:g.quarter+1; const nextYear=g.quarter===4?g.year+1:g.year; const share=Math.min(44,Math.round((units/(units+260+Math.max(0,(g.year-1931)*10)))*100)); const event = nextQ===1 ? yearlyEvent(nextYear) : null; const eCash=event?.cash ?? 0; const ePrestige=event?.prestige ?? 0; const notices:Notice[]=[{title:`${g.year} Q${g.quarter} closed`,body:`${units.toLocaleString()} units shipped. ${profit>=0?'Profit':'Loss'}: $${Math.abs(profit).toFixed(1)}k.`,tone:profit>=0?'good':'bad'},...(event?[{title:event.title,body:event.body,tone:event.cash>=0?'good':'bad'} as Notice]:[]),...g.notices].slice(0,5); return {...g,year:nextYear,quarter:nextQ,cash:Math.round((g.cash+profit+eCash)*10)/10,prestige:Math.max(0,g.prestige+ePrestige),research:g.research+researchGain,products,marketShare:share,lastProfit:profit,history:[...g.history.slice(-11),Math.round((g.cash+profit+eCash)*10)/10],notices,action:`Quarter closed. ${profit>=0?'The ledger is in the black.':'The board expects answers.'}`} }
+function yearlyEvent(year:number){ const events=[{title:'The household appliance boom',body:'Consumer confidence lifts demand for durable electronics.',cash:14,prestige:1},{title:'A rival cuts prices',body:'Low-cost imports pressure the middle of the market.',cash:-9,prestige:0},{title:'National broadcast contract',body:'Your engineering reputation draws lucrative professional interest.',cash:18,prestige:3}]; return events[(year*7)%events.length] }
+export { catalog }
