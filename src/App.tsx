@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { addCommercialProgram, alterCommercialProgram, availableComponents, buildFactory, buyMaterialsCommercial, canResearch, components, designStats, initialGame, issueEquity, issueLoan, regions, research, researches, researchStatus, advanceFifo, commercial, unitEconomics, type Game, type Segment } from './game'
+import { addCommercialProgram, alterCommercialProgram, availableComponents, buildFactory, buyMaterialsCommercial, canResearch, components, designStats, initialGame, issueEquity, issueLoan, regions, research, researches, researchStatus, advanceChannel, commercial, unitEconomics, type Game, type Segment } from './game'
 import './styles.css'
 
 const cash=(n:number)=>`$${n.toFixed(1)}k`
@@ -14,7 +14,7 @@ export function App(){
  const stats=useMemo(()=>designStats(parts),[parts]); const available=availableComponents(game)
  const toggle=(id:string,group:string)=>setParts(current=>current.includes(id)?current.filter(x=>x!==id):[...current.filter(x=>components.find(c=>c.id===x)?.group!==group),id])
  return <main className="tycoon">
-  <header className="masthead"><div className="brand"><span className="mark">R</span><div><h1>RADIANT <i>INDUSTRIES</i></h1><p>NATIONAL ELECTRONICS COMBINE · {game.year} Q{game.quarter}</p></div></div><div className="board-chip">BOARD CONFIDENCE <b>{game.board}</b></div><button className="advance" onClick={()=>apply(advanceFifo)}>Close Quarter <span>→</span></button></header>
+  <header className="masthead"><div className="brand"><span className="mark">R</span><div><h1>RADIANT <i>INDUSTRIES</i></h1><p>NATIONAL ELECTRONICS COMBINE · {game.year} Q{game.quarter}</p></div></div><div className="board-chip">BOARD CONFIDENCE <b>{game.board}</b></div><button className="advance" onClick={()=>apply(advanceChannel)}>Close Quarter <span>→</span></button></header>
   <section className="ticker"><span>EXECUTIVE WIRE</span><p>{game.action}</p><strong>{game.objectives[0]}</strong></section>
   <nav>{(['desk','map','design','operations','finance','research'] as const).map(x=><button key={x} onClick={()=>setTab(x)} className={tab===x?'active':''}>{x}</button>)}</nav>
   <section className="metrics"><Metric name="Treasury" value={cash(game.cash)} alert={game.cash<30}/><Metric name="Quarterly profit" value={cash(game.ledger.profit)} alert={game.ledger.profit<0}/><Metric name="Debt" value={cash(game.debt)} /><Metric name="Market share" value={`${game.marketShare}%`} /></section>
